@@ -1,0 +1,15 @@
+{
+  "name": "Din — Your life, in rhythm",
+  "short_name": "Din",
+  "description": "A private, gentle journal for your everyday life.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f4f5ef",
+  "theme_color": "#f4f5ef",
+  "icons": [{
+    "src": "icon.svg",
+    "sizes": "any",
+    "type": "image/svg+xml",
+    "purpose": "any maskable"
+  }]
+}
