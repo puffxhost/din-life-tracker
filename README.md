@@ -1,42 +1,54 @@
-# Puffx LifeTrack (current app: Din)
+# Puffx LifeTrack (current UI: Din)
 
-A private, self-hostable personal life management and tracking application. The repository currently contains an early **browser-only journal prototype** named Din. It is not yet the full authenticated, database-backed Puffx LifeTrack product.
+Puffx LifeTrack is a private, self-hostable personal life tracker. The repository contains the original static Din journal UI plus a first date/event API slice. The API stores records in a local SQLite database; the existing UI continues to use browser storage until a later API-client integration step.
 
-## Current implementation status
+## Current implementation
 
-Verified in the current source:
+- The browser UI tracks meal, workout, medicine self-report, plan, task, and note entries; mood; timeline; history; basic charts; and JSON backup/restore.
+- New UI entries default to the current local day and time and store an ISO UTC timestamp, together with the IANA timezone used at entry. The UI exposes completed, planned, missed, cancelled, skipped, and pending states.
+- Past entries require a confirmation dialog showing the activity and localized date/time. The record is labelled `user-confirmed`; the app does not claim independent verification.
+- `core/event-system.js` provides shared strict timestamp, timezone, state, confirmation, and DST rules.
+- `server.js` provides bearer-token-protected `GET /api/events`, `POST /api/events`, `PATCH /api/events/:id`, and `GET /api/audit` endpoints.
+- `db.js` creates SQLite tables and triggers that reject future non-planned events and unconfirmed historical events, and append immutable audit records for creates and corrections.
+- Runtime dependencies are built into Node.js. Node 22.5 or newer is required for `node:sqlite`.
 
-- Static HTML, CSS, and vanilla JavaScript; no build step or package installation.
-- Hindi and English interface.
-- Daily entries and chronological/searchable history for meals, workouts, medicine self-reports, plans, tasks, and notes; mood selection.
-- Day navigation and basic future-date/time blocking; past-dated entry creation or edits require an on-screen confirmation.
-- Seven-day entry-count chart, category totals, month activity dots, and day summary.
-- JSON backup download and restore.
-- Browser `localStorage` persistence and a static-asset service worker.
-
-Not implemented yet: accounts, server/API, database, multi-device sync, app-level encryption, recurring habit or medicine schedules/reminders, structured water/sleep/metrics, full calendar/appointments, yearly insights, immutable correction/audit history, automated tests, or automated backup storage. See [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md) for the repository audit, proposed architecture/schema/security rules, and staged roadmap.
-
-## Privacy and data storage
-
-Journal entries are stored in the current browser profile's `localStorage`; this app does not upload them to a LifeTrack server. They are not encrypted by the app, are not shared across devices, and may be lost if browser data is cleared. Export JSON backups and store them somewhere private. The static app loads Google Fonts, so the browser makes font requests to Google; this prototype should not be described as having zero third-party network requests. Do not put personal entries or backups in this public source repository.
+**Important boundary:** The static UI has not yet been wired to the API. UI entries remain in that browser's `localStorage`; the API currently serves authenticated clients separately. There are no full user accounts, multi-user registration, cross-device sync, recurring schedules, reminders, water/sleep/metric modules, calendar, or period-based analytics beyond the existing basic charts.
 
 ## Run locally
 
-Open `index.html` in a modern browser, or run:
+Copy `.env.example` to `.env`, replace the token with a unique random secret (at least 32 characters), then set the environment variables in your shell. The server currently reads environment variables directly; it does not load `.env` automatically.
 
-```sh
-python -m http.server 8000
+```powershell
+$env:LIFETRACK_API_TOKEN = "replace-with-a-unique-secret-of-at-least-32-characters"
+$env:PORT = "3000"
+node server.js
 ```
 
-Then visit <http://localhost:8000>.
+Open <http://localhost:3000>. The SQLite database defaults to `./data/lifetrack.sqlite`; `data/`, `.env`, and SQLite files are ignored by Git. For a non-local deployment, put the server behind HTTPS and keep the token private. The API has one configured owner identity by default (`LIFETRACK_USER_ID=owner`); use a unique token and do not expose it in a public webpage.
+
+Example authenticated API call:
+
+```sh
+curl -H "Authorization: Bearer $LIFETRACK_API_TOKEN" http://localhost:3000/api/events
+```
+
+The API accepts timestamps as strict RFC 3339 strings with `Z` or an explicit numeric offset. Supply a valid IANA timezone and an explicit status. Future events must be `planned`; past events need `historicalConfirmation: true` and a `confirmedAt` timestamp. A past event is labelled `user-confirmed`, not verified.
+
+## Tests
+
+```sh
+npm test
+```
+
+Tests use Node's built-in test runner and temporary SQLite databases; no test service or package installation is required.
 
 ## GitHub Pages
 
-The repository includes `.github/workflows/pages.yml`, which deploys the static root when the `main` branch changes or the workflow is manually run. Configure **Settings → Pages → Build and deployment → GitHub Actions** before expecting deployment to succeed. Pages serves a public static application; it does not provide private accounts or server-side data storage.
+The Pages workflow deploys only the static root UI. GitHub Pages cannot run this Node API or protect journal data. Use the Node server for the authenticated SQLite API; do not treat a Pages deployment as a private server.
 
-## Project plan
+## Plan
 
-See [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md) before implementation work. The database and backend described there are proposals, not code currently in this repository.
+See [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md) for architecture, schema, security rules, implementation status, and the staged roadmap.
 
 ## License
 

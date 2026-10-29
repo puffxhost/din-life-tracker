@@ -1,19 +1,33 @@
 # Puffx LifeTrack — Project Plan
 
-**Status:** Planning document for the existing `puffxhost/din-life-tracker` repository. This plan does not claim the future modules below are implemented.
+**Status:** Living plan for `puffxhost/din-life-tracker`. The current branch implements a first date/event API slice; future modules below remain proposals unless explicitly marked implemented.
+
+## Implementation checkpoint: core date/event slice
+
+Implemented on the current working branch:
+
+- `core/event-system.js` is shared by the browser and Node server. It validates explicit RFC 3339 instants, normalizes them to UTC, validates IANA timezones, resolves local times, and rejects nonexistent or ambiguous daylight-saving wall times rather than guessing.
+- The existing UI defaults a new entry to the current local date/time, saves UTC timestamps and the timezone, exposes six explicit states, blocks future non-planned entries, requests confirmation for past entries, and labels confirmed history as user-confirmed.
+- `server.js` exposes token-protected event read/create/correction and audit endpoints. `db.js` stores UTC instants in SQLite and uses database triggers for future-state and retrospective-confirmation constraints plus immutable audit history.
+- `npm test` exercises the shared policy and API/database boundaries.
+
+The static journal UI still stores its own records in browser `localStorage`; it is not yet connected to the new API. The self-host API is an independently usable authenticated slice, not a completed cloud-sync product. The bearer-token setup is a single-owner deployment boundary, not multi-user account management.
 
 ## 1. Repository audit (verified)
 
-The current default-branch snapshot is a small static application:
+The original default-branch UI is a small static application, with the core API slice now added on this branch:
 
 - `index.html`: page structure and forms for today, insights, and history.
 - `styles.css`: responsive presentation.
 - `app.js`: application state, rendering, entry editing, date checks, search, charts, and backup/restore.
+- `core/event-system.js`: shared date, time, timezone, event-state, and history-confirmation rules.
+- `server.js`, `db.js`: bearer-authenticated Node HTTP API and SQLite schema/constraints/audit triggers.
+- `tests/`: built-in Node tests for core date/time behavior and API/database enforcement.
 - `manifest.webmanifest`, `icon.svg`, `sw.js`: install metadata and a static-asset service worker.
 - `.github/workflows/pages.yml`: deploys the repository root to GitHub Pages on pushes to `main` and manual dispatch.
 - `.nojekyll`, `LICENSE`, `README.md`.
 
-There is no `package.json`, lockfile, backend, database, test suite, build step, or authentication implementation in the audited tree. It is plain HTML/CSS/JavaScript. The service worker caches same-origin static assets; it is not a data-sync service.
+The UI remains plain HTML/CSS/JavaScript and has no build step or third-party runtime dependency. Node.js 22.5+ is required for the API's built-in SQLite module. The service worker caches same-origin static assets; it is not a data-sync service.
 
 ### What currently works in code
 
@@ -28,8 +42,8 @@ These are lightweight journal fields, not dedicated health or scheduling systems
 
 ### Gaps and constraints
 
-- Journal and language settings live in browser `localStorage`; there are no accounts, server storage, multi-device sync, or app-level encryption at rest. Clearing browser data can lose the journal; export is manual.
-- No configured persistence database, authorization layer, server-side validation, or server-side backup/restore exists.
+- Journal entries made through the current UI and language settings live in browser `localStorage`; that UI has no multi-device sync or app-level encryption at rest. Clearing browser data can lose those entries; export is manual.
+- The API uses a single configured bearer token and SQLite, but the browser UI does not yet call it. There is no user registration, multi-account session management, or server-side backup/restore workflow.
 - No first-class recurring habits, task schedules, workout plans/exercises/sets, water intake, sleep, structured body metrics, medication schedules, appointment/calendar views, trip lifecycle, reminders, or daily/weekly/monthly/yearly analytics.
 - There is no immutable audit history for edits/deletions. Past-entry confirmation is a UI prompt, not a durable audit record; mood changes use a browser confirmation.
 - Date checks rely on the browser's current local clock and HTML controls. Imported JSON is only lightly validated. This is not a security boundary or a strict timezone-aware server rule.
@@ -39,15 +53,15 @@ These are lightweight journal fields, not dedicated health or scheduling systems
 
 Puffx LifeTrack should become a private, self-hostable personal tracker. Keep the existing static UI and local-only mode usable during the transition; introduce the server and database as a deliberate next stage, rather than replacing working screens before an authenticated data path is ready.
 
-**Proposed target architecture (not implemented):**
+**Current and target architecture:**
 
-1. Responsive browser client, initially reusing the current vanilla UI and progressively separating modules as needed.
-2. Versioned JSON HTTP API with schema validation and explicit ownership checks.
-3. Node.js + TypeScript backend (proposed Fastify) for authentication, domain rules, exports, and API operations.
-4. PostgreSQL as the authoritative multi-user datastore, with SQL migrations.
-5. Docker Compose deployment for a self-hosted instance, with a reverse proxy providing HTTPS and operator-managed encrypted backups.
+1. Responsive browser client, currently reusing the vanilla UI and storing UI-created entries in browser `localStorage`.
+2. A first JSON HTTP API slice in Node's built-in HTTP server with validation and configured-owner scoping. The API is not yet integrated into the browser UI or a versioned API contract.
+3. SQLite via Node's built-in `node:sqlite` for the current bearer-protected API.
+4. If multi-user accounts or concurrent remote users are required, later migrate to session-based identity and a server database such as PostgreSQL.
+5. Later self-host deployment should use HTTPS, persistent database volumes, and operator-managed encrypted backups.
 
-This is a documented technical choice, not a user requirement or existing dependency. Before coding the backend, confirm the supported deployment target, whether the app is single-owner or multi-account, and whether local-only mode must remain a supported option.
+The current Node/SQLite choice minimizes dependencies for the single-owner API slice. PostgreSQL, a multi-user identity/session model, and a future normalized production schema remain target options, not current dependencies. Before broadening the backend, confirm the supported deployment target, whether the app is single-owner or multi-account, and whether local-only mode must remain supported.
 
 ### Feature modules
 
@@ -67,9 +81,11 @@ Use UUID primary keys, UTC instants for event/audit timestamps, and `user_id` ow
 
 | Table | Main fields and purpose |
 |---|---|
-| `users` | `id`, normalized unique `email`, `password_hash` (or external identity subject), timezone, created/updated timestamps. |
-| `sessions` | `id`, `user_id`, hashed session/token reference, expiry, revocation and creation timestamps. |
-| `activity_entries` | Shared timeline: `id`, `user_id`, kind, title, notes, `occurred_at`, local date/time context, created/updated timestamps. |
+| `users` | Future multi-account target: `id`, normalized unique `email`, `password_hash` (or external identity subject), timezone, created/updated timestamps. Current API is single-owner and uses `LIFETRACK_USER_ID`. |
+| `sessions` | Future multi-account target: `id`, `user_id`, hashed session/token reference, expiry, revocation and creation timestamps. Current API uses a configured bearer secret. |
+| `events` (implemented SQLite) | `id`, `user_id`, category, title, state, UTC ISO `occurred_at`, matching epoch-ms index value, IANA timezone, historical confirmation, optional completion instant, JSON details, and server timestamps. SQLite triggers enforce timestamp consistency, future/planned and historical-confirmation rules. |
+| `audit_events` (implemented SQLite) | Append-only audit snapshots with owner, actor, action, before/after JSON and server creation time. SQLite triggers create these for inserts/updates and block update/delete. |
+| `activity_entries` (future normalized target) | Shared timeline: `id`, `user_id`, kind, title, notes, `occurred_at`, local date/time context, created/updated timestamps. |
 | `habits` / `habit_schedules` / `habit_logs` | Habit definition, recurrence rules and per-date done/missed/skipped outcome. |
 | `tasks` / `task_occurrences` | Task definition and dated status, including missed/in-progress. |
 | `workout_sessions` / `workout_exercises` / `workout_sets` | Session time, duration, exercise order, sets/reps/load/distance; supports a missed planned session separately. |
@@ -101,10 +117,10 @@ Domain tables should reference the owning user and, where useful, a shared timel
 
 ## 6. Staged implementation order
 
-1. **Planning baseline:** this audit, project plan, and truthful README; decide deployment and account model.
-2. **Engineering foundation:** establish backend/client layout, package manager, formatting/linting, unit/integration test harness, local Docker Compose, environment examples, and CI checks.
-3. **Identity and persistence:** migrations for users/sessions/timeline; authentication, authorization, schema validation, timezone/date policy, and API error handling.
-4. **Core journal migration:** authenticated timeline, meals/workouts/medication self-reports/plans/tasks/notes, historical confirmation, and safe migration/import from the current JSON export.
+1. **Planning baseline:** audit, plan, and truthful README are in place; confirm deployment and account model.
+2. **Engineering foundation:** Node package scripts, environment example, ignore rules, and built-in core/API tests now exist. Add CI checks and a documented backup/restore strategy next.
+3. **Identity and persistence:** single-owner bearer auth, SQLite storage, event validation, audit triggers, and API routes are implemented. Add API client integration, schema migrations, multi-account authentication if required, and deployment hardening.
+4. **Core journal migration:** existing local UI still writes `localStorage`. Wire it to authenticated persistence and implement safe JSON import/migration before claiming server-backed journal operation.
 5. **Habits and fitness:** recurring schedules, completion/missed records, structured workouts and missed sessions.
 6. **Wellbeing modules:** water, sleep, meal structure and configurable metrics.
 7. **Calendar and plans:** appointments, trips, date/time views, reminder preferences if safely supported.
