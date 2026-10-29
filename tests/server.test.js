@@ -36,12 +36,17 @@ test('API requires authentication and records confirmed corrections in database 
   assert.equal(plannedResponse.status, 201);
   assert.equal((await plannedResponse.json()).status, 'planned');
 
+  const capturedAt = new Date().toISOString();
+  const currentResponse = await fetch(`${base}/api/events`, { method: 'POST', headers, body: JSON.stringify({ category: 'meal', title: 'Current meal', status: 'completed', occurredAt: capturedAt, currentCapture: true, timezone: 'Asia/Kolkata' }) });
+  assert.equal(currentResponse.status, 201);
+  assert.ok(Date.parse((await currentResponse.json()).occurredAt) >= Date.parse(capturedAt));
+
   const correctedAt = new Date(Date.now() - 3600000).toISOString();
   const correctionWithoutConfirmation = await fetch(`${base}/api/events/${created.id}`, { method: 'PATCH', headers, body: JSON.stringify({ occurredAt: correctedAt }) });
   assert.equal(correctionWithoutConfirmation.status, 400);
   const correction = await fetch(`${base}/api/events/${created.id}`, { method: 'PATCH', headers, body: JSON.stringify({ title: 'Gym corrected', occurredAt: correctedAt, historicalConfirmation: true, confirmedAt: new Date().toISOString() }) });
   assert.equal(correction.status, 200);
-  assert.equal(db.prepare('SELECT COUNT(*) AS count FROM audit_events WHERE user_id = ?').get('test-owner').count, 3);
+  assert.equal(db.prepare('SELECT COUNT(*) AS count FROM audit_events WHERE user_id = ?').get('test-owner').count, 4);
   const latest = db.prepare('SELECT before_json,after_json FROM audit_events WHERE action = ? ORDER BY id DESC').get('corrected');
   assert.equal(JSON.parse(latest.before_json).title, 'Gym');
   assert.equal(JSON.parse(latest.after_json).title, 'Gym corrected');

@@ -11,7 +11,7 @@ Implemented on the current working branch:
 - `server.js` exposes token-protected event read/create/correction and audit endpoints. `db.js` stores UTC instants in SQLite and uses database triggers for future-state and retrospective-confirmation constraints plus immutable audit history.
 - `npm test` exercises the shared policy and API/database boundaries.
 
-The static journal UI still stores its own records in browser `localStorage`; it is not yet connected to the new API. The self-host API is an independently usable authenticated slice, not a completed cloud-sync product. The bearer-token setup is a single-owner deployment boundary, not multi-user account management.
+The static journal UI can connect to the same-origin API using a tab-scoped bearer token; browser-only mode remains available. Existing local-only entries are not bulk-migrated automatically, and connected entries are cached by the UI. The bearer-token setup is a single-owner deployment boundary, not multi-user account management.
 
 ## 1. Repository audit (verified)
 
@@ -42,7 +42,7 @@ These are lightweight journal fields, not dedicated health or scheduling systems
 
 ### Gaps and constraints
 
-- Journal entries made through the current UI and language settings live in browser `localStorage`; that UI has no multi-device sync or app-level encryption at rest. Clearing browser data can lose those entries; export is manual.
+- Browser-only journal entries and the connected-event cache live in browser `localStorage`; the UI has no app-level encryption at rest. Clearing browser data can remove its cache; export is manual.
 - The API uses a single configured bearer token and SQLite, but the browser UI does not yet call it. There is no user registration, multi-account session management, or server-side backup/restore workflow.
 - No first-class recurring habits, task schedules, workout plans/exercises/sets, water intake, sleep, structured body metrics, medication schedules, appointment/calendar views, trip lifecycle, reminders, or daily/weekly/monthly/yearly analytics.
 - There is no immutable audit history for edits/deletions. Past-entry confirmation is a UI prompt, not a durable audit record; mood changes use a browser confirmation.
@@ -51,12 +51,12 @@ These are lightweight journal fields, not dedicated health or scheduling systems
 
 ## 2. Product goal and architecture
 
-Puffx LifeTrack should become a private, self-hostable personal tracker. Keep the existing static UI and local-only mode usable during the transition; introduce the server and database as a deliberate next stage, rather than replacing working screens before an authenticated data path is ready.
+Puffx LifeTrack should become a private, self-hostable personal tracker. Keep the existing browser-only mode usable alongside the authenticated same-origin API while a safe import path is developed.
 
 **Current and target architecture:**
 
-1. Responsive browser client, currently reusing the vanilla UI and storing UI-created entries in browser `localStorage`.
-2. A first JSON HTTP API slice in Node's built-in HTTP server with validation and configured-owner scoping. The API is not yet integrated into the browser UI or a versioned API contract.
+1. Responsive browser client, currently reusing the vanilla UI with browser-only mode and an optional same-origin API connection.
+2. A first JSON HTTP API slice in Node's built-in HTTP server with validation and configured-owner scoping. Connected event reads/creates/corrections work in the UI, but there is not yet a versioned API contract or bulk import/migration.
 3. SQLite via Node's built-in `node:sqlite` for the current bearer-protected API.
 4. If multi-user accounts or concurrent remote users are required, later migrate to session-based identity and a server database such as PostgreSQL.
 5. Later self-host deployment should use HTTPS, persistent database volumes, and operator-managed encrypted backups.
@@ -119,8 +119,8 @@ Domain tables should reference the owning user and, where useful, a shared timel
 
 1. **Planning baseline:** audit, plan, and truthful README are in place; confirm deployment and account model.
 2. **Engineering foundation:** Node package scripts, environment example, ignore rules, and built-in core/API tests now exist. Add CI checks and a documented backup/restore strategy next.
-3. **Identity and persistence:** single-owner bearer auth, SQLite storage, event validation, audit triggers, and API routes are implemented. Add API client integration, schema migrations, multi-account authentication if required, and deployment hardening.
-4. **Core journal migration:** existing local UI still writes `localStorage`. Wire it to authenticated persistence and implement safe JSON import/migration before claiming server-backed journal operation.
+3. **Identity and persistence:** single-owner bearer auth, SQLite storage, event validation, audit triggers, API routes, and same-origin UI connection are implemented. Add schema migrations, multi-account authentication if required, and deployment hardening.
+4. **Core journal migration:** browser-only records are not bulk-imported to the server. Define a safe JSON import/migration flow with preview and historical confirmation before moving existing data.
 5. **Habits and fitness:** recurring schedules, completion/missed records, structured workouts and missed sessions.
 6. **Wellbeing modules:** water, sleep, meal structure and configurable metrics.
 7. **Calendar and plans:** appointments, trips, date/time views, reminder preferences if safely supported.

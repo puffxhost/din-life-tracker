@@ -1,6 +1,6 @@
 # Puffx LifeTrack (current UI: Din)
 
-Puffx LifeTrack is a private, self-hostable personal life tracker. The repository contains the original static Din journal UI plus a first date/event API slice. The API stores records in a local SQLite database; the existing UI continues to use browser storage until a later API-client integration step.
+Puffx LifeTrack is a private, self-hostable personal life tracker. The repository contains the original Din journal UI plus a date/event API. Use the server connect button to save and read events through the same-origin Node API and local SQLite database. Without a connection, the app stays in browser-only mode.
 
 ## Current implementation
 
@@ -10,9 +10,10 @@ Puffx LifeTrack is a private, self-hostable personal life tracker. The repositor
 - `core/event-system.js` provides shared strict timestamp, timezone, state, confirmation, and DST rules.
 - `server.js` provides bearer-token-protected `GET /api/events`, `POST /api/events`, `PATCH /api/events/:id`, and `GET /api/audit` endpoints.
 - `db.js` creates SQLite tables and triggers that reject future non-planned events and unconfirmed historical events, and append immutable audit records for creates and corrections.
+- Connect from the UI with the server token. The token stays in `sessionStorage` for the current tab. Connected event changes go through API validation; server-loaded events are also cached locally by the existing UI.
 - Runtime dependencies are built into Node.js. Node 22.5 or newer is required for `node:sqlite`.
 
-**Important boundary:** The static UI has not yet been wired to the API. UI entries remain in that browser's `localStorage`; the API currently serves authenticated clients separately. There are no full user accounts, multi-user registration, cross-device sync, recurring schedules, reminders, water/sleep/metric modules, calendar, or period-based analytics beyond the existing basic charts.
+**Important boundary:** The API is a single-owner bearer-token service, not full account management. Existing browser-only entries are not bulk-migrated automatically; export them first, then import/migrate in a deliberate later step. The token is tab-scoped, but event data and cached records remain in browser `localStorage`. There are no multi-user accounts, recurring schedules, reminders, water/sleep/metric modules, calendar, or period-based analytics beyond the existing basic charts.
 
 ## Run locally
 
@@ -24,7 +25,7 @@ $env:PORT = "3000"
 node server.js
 ```
 
-Open <http://localhost:3000>. The SQLite database defaults to `./data/lifetrack.sqlite`; `data/`, `.env`, and SQLite files are ignored by Git. For a non-local deployment, put the server behind HTTPS and keep the token private. The API has one configured owner identity by default (`LIFETRACK_USER_ID=owner`); use a unique token and do not expose it in a public webpage.
+Open <http://localhost:3000>, then use the connect button and enter the same token. The SQLite database defaults to `./data/lifetrack.sqlite`; `data/`, `.env`, and SQLite files are ignored by Git. For a non-local deployment, put the server behind HTTPS and keep the token private. The API has one configured owner identity by default (`LIFETRACK_USER_ID=owner`); use a unique token and do not expose it in a public webpage.
 
 Example authenticated API call:
 

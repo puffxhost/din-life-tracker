@@ -14,6 +14,12 @@ function safeEqual(a, b) {
   const right = Buffer.from(String(b || ''));
   return left.length === right.length && crypto.timingSafeEqual(left, right);
 }
+function normalizeCurrentCapture(input, now) {
+  if (input.currentCapture !== true) return input;
+  const requested = core.parseTimestamp(input.occurredAt);
+  if (requested.epochMs > now || now - requested.epochMs > 5000) throw new Error('current capture timestamp is outside the 5-second request window');
+  return { ...input, occurredAt: new Date(now).toISOString() };
+}
 function makeServer({ db, token, userId = 'owner', staticRoot = __dirname, clock = Date.now }) {
   if (!db || typeof token !== 'string' || token.length < 32) throw new Error('A database and LIFETRACK_API_TOKEN of at least 32 characters are required');
   function send(res, status, data) {
@@ -39,8 +45,9 @@ function makeServer({ db, token, userId = 'owner', staticRoot = __dirname, clock
           return send(res, 200, { audit: rows });
         }
         if (req.method === 'POST' && url.pathname === '/api/events') {
-          const input = await body(req);
-          const event = core.validateEvent(input, clock());
+          const now = clock();
+          const input = normalizeCurrentCapture(await body(req), now);
+          const event = core.validateEvent(input, now);
           const id = crypto.randomUUID();
           const timestamp = nowIso();
           db.prepare(`INSERT INTO events(id,user_id,category,title,status,occurred_at,occurred_at_ms,timezone,historical_confirmed_at,completed_at,details_json,created_at,updated_at,updated_by)
@@ -55,7 +62,8 @@ function makeServer({ db, token, userId = 'owner', staticRoot = __dirname, clock
           const changedTime = input.occurredAt != null && input.occurredAt !== current.occurred_at;
           const correctingHistory = changedTime || Date.parse(current.occurred_at) < clock() - 60_000;
           const merged = { category: current.category, title: current.title, status: current.status, occurredAt: current.occurred_at, timezone: current.timezone, historicalConfirmation: correctingHistory ? false : Boolean(current.historical_confirmed_at), confirmedAt: correctingHistory ? null : current.historical_confirmed_at, completedAt: current.completed_at, details: JSON.parse(current.details_json), ...input };
-          const event = core.validateEvent(merged, clock());
+          const now = clock();
+          const event = core.validateEvent(normalizeCurrentCapture(merged, now), now);
           const timestamp = nowIso();
           db.prepare(`UPDATE events SET category=?,title=?,status=?,occurred_at=?,occurred_at_ms=?,timezone=?,historical_confirmed_at=?,completed_at=?,details_json=?,updated_at=?,updated_by=? WHERE id=? AND user_id=?`)
             .run(event.category,event.title,event.status,event.occurredAt,Date.parse(event.occurredAt),event.timezone,event.historicalConfirmedAt,event.completedAt || null,JSON.stringify(event.details || {}),timestamp,userId,match[1],userId);
