@@ -92,7 +92,7 @@ if (require.main === module) {
   if (!token || token.length < 32) throw new Error('Set LIFETRACK_API_TOKEN to a random secret of at least 32 characters');
   const server = makeServer({ db: openDatabase(), token, userId: process.env.LIFETRACK_USER_ID || 'owner' });
   const port = Number(process.env.PORT || 3000);
-  server.listen(port, () => console.log(`Puffx LifeTrack listening on http://localhost:${port}`));
+  server.listen(port, () => console.log(`Dayora by Puffx listening on http://localhost:${port}`));
 }
 
 module.exports = { makeServer };

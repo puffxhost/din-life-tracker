@@ -1,5 +1,5 @@
-const CACHE = 'din-static-v3';
-const FILES = ['./', './index.html', './styles.css', './app.js', './core/event-system.js', './manifest.webmanifest', './icon.svg'];
+const CACHE = 'dayora-static-v4';
+const FILES = ['./', './index.html', './styles.css', './app.js', './core/event-system.js', './core/storage-migration.js', './core/backup.js', './manifest.webmanifest', './icon.svg'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(FILES)));
   self.skipWaiting();

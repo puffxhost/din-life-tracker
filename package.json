@@ -1,5 +1,5 @@
 {
-  "name": "puffx-lifetrack",
+  "name": "dayora-by-puffx",
   "version": "0.2.0",
   "private": true,
   "description": "Self-hostable personal life tracking prototype",
@@ -7,6 +7,7 @@
   "engines": { "node": ">=22.5" },
   "scripts": {
     "start": "node server.js",
+    "check": "node --check app.js && node --check server.js && node --check sw.js && node --check db.js && node --check core/event-system.js && node --check core/storage-migration.js && node --check core/backup.js",
     "test": "node --test"
   }
 }

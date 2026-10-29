@@ -1,11 +1,13 @@
-# Puffx LifeTrack (current UI: Din)
+# Dayora by Puffx
 
-Puffx LifeTrack is a private, self-hostable personal life tracker. The repository contains the original Din journal UI plus a date/event API. Use the server connect button to save and read events through the same-origin Node API and local SQLite database. Without a connection, the app stays in browser-only mode.
+**Your Life, Your Timeline.** Dayora is a private personal journal and event tracker by Puffx. The current release provides the Today dashboard, daily timeline, categories, mood notes, history search, summaries, a browser-only mode, and an optional same-origin Node/SQLite API.
 
 ## Current implementation
 
 - The browser UI tracks meal, workout, medicine self-report, plan, task, and note entries; mood; timeline; history; basic charts; and JSON backup/restore.
 - New UI entries default to the current local day and time and store an ISO UTC timestamp, together with the IANA timezone used at entry. The UI exposes completed, planned, missed, cancelled, skipped, and pending states.
+- Existing `din.life-tracker.v1` browser records migrate idempotently to `dayora.life-tracker.v1`. The original key is retained; where both exist, Dayora entries win on matching IDs and Dayora mood values win on matching dates.
+- New exports use the Dayora schema version 2 format. Din v1 backups remain importable after validation and an explicit replacement confirmation. Malformed records, duplicate IDs, invalid dates, invalid state transitions, and unconfirmed historical records are rejected.
 - Past entries require a confirmation dialog showing the activity and localized date/time. The record is labelled `user-confirmed`; the app does not claim independent verification.
 - `core/event-system.js` provides shared strict timestamp, timezone, state, confirmation, and DST rules.
 - `server.js` provides bearer-token-protected `GET /api/events`, `POST /api/events`, `PATCH /api/events/:id`, and `GET /api/audit` endpoints.
@@ -13,7 +15,7 @@ Puffx LifeTrack is a private, self-hostable personal life tracker. The repositor
 - Connect from the UI with the server token. The token stays in `sessionStorage` for the current tab. Connected event changes go through API validation; server-loaded events are also cached locally by the existing UI.
 - Runtime dependencies are built into Node.js. Node 22.5 or newer is required for `node:sqlite`.
 
-**Important boundary:** The API is a single-owner bearer-token service, not full account management. Existing browser-only entries are not bulk-migrated automatically; export them first, then import/migrate in a deliberate later step. The token is tab-scoped, but event data and cached records remain in browser `localStorage`. There are no multi-user accounts, recurring schedules, reminders, water/sleep/metric modules, calendar, or period-based analytics beyond the existing basic charts.
+**Important boundary:** The API is a single-owner bearer-token service, not full account management. Existing browser-only entries are not bulk-migrated automatically to the server. The token is tab-scoped, but event data and cached records remain in browser `localStorage`. There are no multi-user accounts, recurring schedules, reminders, water/sleep/metric modules, calendar, or period-based analytics beyond the existing basic charts.
 
 ## Run locally
 
@@ -38,10 +40,11 @@ The API accepts timestamps as strict RFC 3339 strings with `Z` or an explicit nu
 ## Tests
 
 ```sh
+npm run check
 npm test
 ```
 
-Tests use Node's built-in test runner and temporary SQLite databases; no test service or package installation is required.
+Tests use Node's built-in test runner and temporary SQLite databases; no test service or package installation is required. GitHub Actions runs these checks on pushes and pull requests.
 
 ## GitHub Pages
 
@@ -49,7 +52,7 @@ The Pages workflow deploys only the static root UI. GitHub Pages cannot run this
 
 ## Plan
 
-See [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md) for architecture, schema, security rules, implementation status, and the staged roadmap.
+See [docs/AUDIT.md](docs/AUDIT.md) for inspected files and verified findings, and [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md) for architecture, schema, security rules, implementation status, and the staged roadmap.
 
 ## License
 

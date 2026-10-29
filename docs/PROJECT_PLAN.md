@@ -1,6 +1,6 @@
-# Puffx LifeTrack — Project Plan
+# Dayora by Puffx — Project Plan
 
-**Status:** Living plan for `puffxhost/din-life-tracker`. The current branch implements a first date/event API slice; future modules below remain proposals unless explicitly marked implemented.
+**Status:** Living plan for `puffxhost/din-life-tracker`. The current branch implements a first date/event API slice and a safe browser-storage and backup identity migration; future modules below remain proposals unless explicitly marked implemented.
 
 ## Implementation checkpoint: core date/event slice
 
@@ -10,6 +10,8 @@ Implemented on the current working branch:
 - The existing UI defaults a new entry to the current local date/time, saves UTC timestamps and the timezone, exposes six explicit states, blocks future non-planned entries, requests confirmation for past entries, and labels confirmed history as user-confirmed.
 - `server.js` exposes token-protected event read/create/correction and audit endpoints. `db.js` stores UTC instants in SQLite and uses database triggers for future-state and retrospective-confirmation constraints plus immutable audit history.
 - `npm test` exercises the shared policy and API/database boundaries.
+- `core/storage-migration.js` migrates old Din localStorage data idempotently to the Dayora key, retains the original as a recovery copy, and lets Dayora values win ID/date conflicts.
+- `core/backup.js` validates Dayora schema v2 and Din v1 backups before replacement; malformed entries and duplicate IDs are rejected.
 
 The static journal UI can connect to the same-origin API using a tab-scoped bearer token; browser-only mode remains available. Existing local-only entries are not bulk-migrated automatically, and connected entries are cached by the UI. The bearer-token setup is a single-owner deployment boundary, not multi-user account management.
 
@@ -51,7 +53,7 @@ These are lightweight journal fields, not dedicated health or scheduling systems
 
 ## 2. Product goal and architecture
 
-Puffx LifeTrack should become a private, self-hostable personal tracker. Keep the existing browser-only mode usable alongside the authenticated same-origin API while a safe import path is developed.
+Dayora by Puffx should become a private, self-hostable personal tracker. Keep the existing browser-only mode usable alongside the authenticated same-origin API. Browser backup import supports Din v1 compatibility; moving local records into the server remains a separate migration flow.
 
 **Current and target architecture:**
 

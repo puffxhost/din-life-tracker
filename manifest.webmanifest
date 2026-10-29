@@ -1,7 +1,7 @@
 {
-  "name": "Din — Your life, in rhythm",
-  "short_name": "Din",
-  "description": "A private, gentle journal for your everyday life.",
+  "name": "Dayora — Your Life, Your Timeline.",
+  "short_name": "Dayora",
+  "description": "Dayora by Puffx — a private space to track your everyday life.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#f4f5ef",
