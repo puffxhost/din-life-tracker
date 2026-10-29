@@ -20,14 +20,14 @@ No build step, package install, API key or account is needed. The project includ
 - **Food and meals:** what you ate, the meal, and an optional amount.
 - **Movement:** a workout, duration, and optional sets or distance. A missed session can be recorded as a daily task.
 - **Medicine:** name, dose, time, and whether you took it or skipped it.
-- **Plans and travel:** the plan, destination, time, and who is going.
+- **Plans and travel:** record the plan today, with an optional future trip date, destination, and who is going. The planned travel date is a plan detail; it does not change the date or time when you made the entry.
 - **Daily tasks, notes, and mood.**
 - A day timeline, search and category filters, a seven-day activity chart, category breakdown, and day summary.
 - JSON export and restore for moving or backing up your journal.
 
 ## Time and date rules
 
-The current local date and time are the default. You cannot add an entry in the future. If you choose a time that has already passed, Din asks you to confirm before saving it. This includes earlier times today and dates in the past. Older activity stays labelled with the date and time you chose.
+The current local date and time are the default. You cannot record an activity entry in the future. A travel plan can include a future trip date while the plan itself is logged today. If you choose an entry time that has already passed, Din asks you to confirm before saving it. This includes earlier times today and dates in the past. Older activity stays labelled with the date and time you chose.
 
 ## Language
 
