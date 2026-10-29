@@ -6,7 +6,7 @@
 
 [Open Dayora on GitHub Pages](https://puffxhost.github.io/din-life-tracker/)
 
-The Pages workflow deploys from `main`. Changes on feature branches appear in the live demo after they are merged and the deployment succeeds.
+The Pages workflow deploys from `main`. The site must first be enabled in **Settings → Pages → Build and deployment → Source: GitHub Actions**. Changes on feature branches appear in the demo after they are merged and the deployment succeeds. If this URL currently returns 404, enable Pages and run the Pages workflow from **Actions** once; merging the Dayora PR will then publish the Dayora version.
 
 ## Current implementation
 
