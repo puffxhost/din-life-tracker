@@ -7,6 +7,7 @@
   const LEGACY_KEY='din.life-tracker.v1';
   const CURRENT_KEY='dayora.life-tracker.v1';
   const CATEGORIES=new Set(['meal','workout','medication','plan','task','note']);
+  const STATES=new Set(['completed','planned','missed','cancelled','skipped','pending','in_progress','unknown']);
   const MOODS=new Set(['low','okay','good','great']);
   function validDate(value){if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;const [y,m,d]=value.split('-').map(Number),date=new Date(Date.UTC(y,m-1,d));return date.getUTCFullYear()===y&&date.getUTCMonth()===m-1&&date.getUTCDate()===d}
   function validState(value){
@@ -15,6 +16,7 @@
     for(const entry of value.entries){
       if(!entry||typeof entry!=='object'||Array.isArray(entry)||typeof entry.id!=='string'||!entry.id.trim()||ids.has(entry.id)||!CATEGORIES.has(entry.category)||typeof entry.title!=='string'||!entry.title.trim()||!validDate(entry.date)||typeof entry.time!=='string'||!/^([01]\d|2[0-3]):[0-5]\d$/.test(entry.time))return false;
       if(entry.occurredAt&&(!Number.isFinite(Date.parse(entry.occurredAt))||typeof entry.occurredAt!=='string'))return false;
+      if(entry.status!=null&&!STATES.has(entry.status))return false;
       ids.add(entry.id);
     }
     for(const [date,mood] of Object.entries(value.moods))if(!validDate(date)||!MOODS.has(mood))return false;
@@ -25,7 +27,7 @@
     let value;
     try{value=JSON.parse(raw)}catch{return {error:'corrupt'}}
     if(!validState(value))return {error:'invalid'};
-    return {state:{...value,entries:value.entries,moods:value.moods}};
+    return {state:{...value,entries:value.entries.map(entry=>({...entry,status:entry.status||'unknown'})),moods:value.moods}};
   }
   function mergeStates(current,legacy){
     const currentEntries=current?.entries||[],legacyEntries=legacy?.entries||[];
