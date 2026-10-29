@@ -5,7 +5,7 @@
 })(typeof globalThis === 'object' ? globalThis : this, function () {
   'use strict';
 
-  const STATES = Object.freeze(['completed', 'planned', 'missed', 'cancelled', 'skipped', 'pending']);
+  const STATES = Object.freeze(['completed', 'planned', 'missed', 'cancelled', 'skipped', 'pending', 'in_progress', 'unknown']);
   const CATEGORIES = Object.freeze(['meal', 'workout', 'medication', 'plan', 'task', 'note']);
   const RFC3339 = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?(Z|[+-]\d{2}:\d{2})$/;
   const LOCAL = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/;
@@ -67,7 +67,8 @@
     if (!STATES.includes(input.status)) throw new Error('status must be one of: ' + STATES.join(', '));
     if (!validTimezone(input.timezone)) throw new Error('timezone must be a valid IANA timezone');
     const eventTime = parseTimestamp(input.occurredAt);
-    if (eventTime.epochMs > now && input.status !== 'planned') throw new Error('future events must be planned; they cannot be saved as activities');
+    if (eventTime.epochMs > now && !['planned', 'cancelled'].includes(input.status)) throw new Error('future events must be planned or cancelled; they cannot be saved as activities');
+    if (input.details != null && (typeof input.details !== 'object' || Array.isArray(input.details))) throw new Error('details must be an object');
     const isHistorical = eventTime.epochMs < now;
     let confirmedAt = null;
     if (isHistorical) {

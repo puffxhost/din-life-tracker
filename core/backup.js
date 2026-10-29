@@ -5,7 +5,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
   const CATEGORIES=new Set(['meal','workout','medication','plan','task','note']);
-  const STATES=new Set(['completed','planned','missed','cancelled','skipped','pending','unknown']);
+  const STATES=new Set(['completed','planned','missed','cancelled','skipped','pending','in_progress','unknown']);
   function validateBackup(data,core,now=Date.now(),defaultTimezone='UTC'){
     if(!data||typeof data!=='object'||Array.isArray(data)||!['Din','Dayora'].includes(data.app)||!Array.isArray(data.entries)||!data.moods||typeof data.moods!=='object'||Array.isArray(data.moods))throw new Error('Backup format is not supported.');
     if(data.app==='Dayora'&&data.schemaVersion!==2)throw new Error('Dayora backup schema version is not supported.');

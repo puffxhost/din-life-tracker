@@ -21,3 +21,8 @@ test('labels records with missing legacy state as unknown instead of assuming fa
   const row=historical();delete row.status;
   assert.equal(backup.validateBackup(pack([row],'Din'),core,now,'UTC').entries[0].status,'unknown');
 });
+
+test('imports confirmed in-progress history using the expanded event state set',()=>{
+  const row={...historical(),status:'in_progress'};
+  assert.equal(backup.validateBackup(pack([row]),core,now,'UTC').entries[0].status,'in_progress');
+});
