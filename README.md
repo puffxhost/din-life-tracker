@@ -6,18 +6,18 @@
 
 [Open Dayora on GitHub Pages](https://puffxhost.github.io/din-life-tracker/)
 
-The Pages workflow deploys from `main`. The site must first be enabled in **Settings → Pages → Build and deployment → Source: GitHub Actions**. Changes on feature branches appear in the demo after they are merged and the deployment succeeds. If this URL currently returns 404, enable Pages and run the Pages workflow from **Actions** once; merging the Dayora PR will then publish the Dayora version.
+GitHub Pages is enabled for this repository with **GitHub Actions** as its publishing source. Changes on feature branches appear in the demo after they are merged and the Pages deployment succeeds.
 
 ## Current implementation
 
 - The browser UI tracks meal, workout, medicine self-report, plan, task, and note entries; mood; timeline; history; basic charts; and JSON backup/restore.
-- New UI entries default to the current local day and time and store an ISO UTC timestamp, together with the IANA timezone used at entry. The UI exposes completed, planned, missed, cancelled, skipped, and pending states.
+- New UI entries default to the current local day and time and store an ISO UTC timestamp, together with the IANA timezone used at entry. The UI exposes completed, planned, missed, cancelled, skipped, pending, in-progress, and unknown states.
 - Existing `din.life-tracker.v1` browser records migrate idempotently to `dayora.life-tracker.v1`. The original key is retained; where both exist, Dayora entries win on matching IDs and Dayora mood values win on matching dates.
 - New exports use the Dayora schema version 2 format. Din v1 backups remain importable after validation and an explicit replacement confirmation. Malformed records, duplicate IDs, invalid dates, invalid state transitions, and unconfirmed historical records are rejected.
 - Past entries require a confirmation dialog showing the activity and localized date/time. The record is labelled `user-confirmed`; the app does not claim independent verification.
 - `core/event-system.js` provides shared strict timestamp, timezone, state, confirmation, and DST rules.
 - `server.js` provides bearer-token-protected `GET /api/events`, `POST /api/events`, `PATCH /api/events/:id`, and `GET /api/audit` endpoints.
-- `db.js` creates SQLite tables and triggers that reject future non-planned events and unconfirmed historical events, and append immutable audit records for creates and corrections.
+- `db.js` creates SQLite tables and triggers that reject future states other than planned or cancelled and unconfirmed historical events, and append immutable audit records for creates and corrections. On startup it migrates older event-state constraints while preserving existing records and audit history.
 - Connect from the UI with the server token. The token stays in `sessionStorage` for the current tab. Connected event changes go through API validation; server-loaded events are also cached locally by the existing UI.
 - Runtime dependencies are built into Node.js. Node 22.5 or newer is required for `node:sqlite`.
 
