@@ -2,6 +2,12 @@
 
 **Your Life, Your Timeline.** Dayora is a private personal journal and event tracker by Puffx. The current release provides the Today dashboard, daily timeline, categories, mood notes, history search, summaries, a browser-only mode, and an optional same-origin Node/SQLite API.
 
+## Live demo
+
+[Open Dayora on GitHub Pages](https://puffxhost.github.io/din-life-tracker/)
+
+The Pages workflow deploys from `main`. Changes on feature branches appear in the live demo after they are merged and the deployment succeeds.
+
 ## Current implementation
 
 - The browser UI tracks meal, workout, medicine self-report, plan, task, and note entries; mood; timeline; history; basic charts; and JSON backup/restore.
