@@ -11,7 +11,7 @@ Open `index.html` in a modern browser, or publish the project to GitHub Pages:
 1. Create a GitHub repository and add these project files to its default branch.
 2. In the repository, open **Settings → Pages**.
 3. Under **Build and deployment**, select **GitHub Actions**.
-4. The included workflow deploys the site when changes are pushed to `main`. Find the live link under **Settings → Pages** after the first deployment finishes.
+4. If a run already failed before Pages was enabled, open **Actions → Deploy Din to GitHub Pages** and re-run that workflow. Future pushes to `main` deploy automatically. Find the live link under **Settings → Pages** after a successful deployment.
 
 No build step, package install, API key or account is needed. The project includes a deploy workflow at `.github/workflows/pages.yml`.
 
