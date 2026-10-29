@@ -1,47 +1,42 @@
-# din.
+# Puffx LifeTrack (current app: Din)
 
-**Your life, in rhythm.** Din is a calm, private daily journal for meals, workouts, medicine, tasks, moods, plans and the small things in between. It is built as a static website, so it can be hosted on GitHub Pages for free with no server or database to maintain.
+A private, self-hostable personal life management and tracking application. The repository currently contains an early **browser-only journal prototype** named Din. It is not yet the full authenticated, database-backed Puffx LifeTrack product.
 
-> **Your journal is private to your browser.** Entries and preferences are saved in that browser's local storage. They are not uploaded to GitHub or sent to a Din server. Use **Export** regularly to keep a backup; use the round profile button to restore a backup. Clearing browser data or switching devices without a backup will remove access to those entries.
+## Current implementation status
 
-## Try it
+Verified in the current source:
 
-Open `index.html` in a modern browser, or publish the project to GitHub Pages:
+- Static HTML, CSS, and vanilla JavaScript; no build step or package installation.
+- Hindi and English interface.
+- Daily entries and chronological/searchable history for meals, workouts, medicine self-reports, plans, tasks, and notes; mood selection.
+- Day navigation and basic future-date/time blocking; past-dated entry creation or edits require an on-screen confirmation.
+- Seven-day entry-count chart, category totals, month activity dots, and day summary.
+- JSON backup download and restore.
+- Browser `localStorage` persistence and a static-asset service worker.
 
-1. Create a GitHub repository and add these project files to its default branch.
-2. In the repository, open **Settings → Pages**.
-3. Under **Build and deployment**, select **GitHub Actions**.
-4. If a run already failed before Pages was enabled, open **Actions → Deploy Din to GitHub Pages** and re-run that workflow. Future pushes to `main` deploy automatically. Find the live link under **Settings → Pages** after a successful deployment.
+Not implemented yet: accounts, server/API, database, multi-device sync, app-level encryption, recurring habit or medicine schedules/reminders, structured water/sleep/metrics, full calendar/appointments, yearly insights, immutable correction/audit history, automated tests, or automated backup storage. See [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md) for the repository audit, proposed architecture/schema/security rules, and staged roadmap.
 
-No build step, package install, API key or account is needed. The project includes a deploy workflow at `.github/workflows/pages.yml`.
+## Privacy and data storage
 
-## What you can track
-
-- **Food and meals:** what you ate, the meal, and an optional amount.
-- **Movement:** a workout, duration, and optional sets or distance. A missed session can be recorded as a daily task.
-- **Medicine:** name, dose, time, and whether you took it or skipped it.
-- **Plans and travel:** record the plan today, with an optional future trip date, destination, and who is going. The planned travel date is a plan detail; it does not change the date or time when you made the entry.
-- **Daily tasks, notes, and mood.**
-- A day timeline, search and category filters, a seven-day activity chart, category breakdown, and day summary.
-- JSON export and restore for moving or backing up your journal.
-
-## Time and date rules
-
-The current local date and time are the default. You cannot record an activity entry in the future. A travel plan can include a future trip date while the plan itself is logged today. If you choose an entry time that has already passed, Din asks you to confirm before saving it. This includes earlier times today and dates in the past. Older activity stays labelled with the date and time you chose.
-
-## Language
-
-The interface starts in Hindi and includes a language switch for English. The chosen language is remembered in that browser.
+Journal entries are stored in the current browser profile's `localStorage`; this app does not upload them to a LifeTrack server. They are not encrypted by the app, are not shared across devices, and may be lost if browser data is cleared. Export JSON backups and store them somewhere private. The static app loads Google Fonts, so the browser makes font requests to Google; this prototype should not be described as having zero third-party network requests. Do not put personal entries or backups in this public source repository.
 
 ## Run locally
 
-You can open `index.html` directly. For a local web server, from this folder run:
+Open `index.html` in a modern browser, or run:
 
 ```sh
 python -m http.server 8000
 ```
 
-Then open <http://localhost:8000>.
+Then visit <http://localhost:8000>.
+
+## GitHub Pages
+
+The repository includes `.github/workflows/pages.yml`, which deploys the static root when the `main` branch changes or the workflow is manually run. Configure **Settings → Pages → Build and deployment → GitHub Actions** before expecting deployment to succeed. Pages serves a public static application; it does not provide private accounts or server-side data storage.
+
+## Project plan
+
+See [docs/PROJECT_PLAN.md](docs/PROJECT_PLAN.md) before implementation work. The database and backend described there are proposals, not code currently in this repository.
 
 ## License
 
