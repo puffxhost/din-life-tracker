@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 const migration=require('../core/storage-migration.js');
 function storage(seed={}){const data=new Map(Object.entries(seed));return {getItem:key=>data.has(key)?data.get(key):null,setItem:(key,value)=>data.set(key,String(value)),data}}
 const state=(entries=[],moods={})=>JSON.stringify({entries,moods});
-const entry=(id,title=id)=>({id,category:'note',title,date:'2026-10-01',time:'12:00'});
+const entry=(id,title=id)=>({id,category:'note',title,date:'2026-10-01',time:'12:00',status:'unknown'});
 
 test('copies a valid Din journal once and keeps its original recoverable',()=>{
   const old=state([entry('a','Walk')],{'2026-10-01':'good'}),s=storage({[migration.LEGACY_KEY]:old});

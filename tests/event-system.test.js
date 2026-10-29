@@ -17,9 +17,18 @@ test('rejects future completed activities but accepts planned future events', ()
   const future = { ...base, occurredAt: '2026-10-29T12:00:01Z' };
   assert.throws(() => core.validateEvent(future, NOW), /future events must be planned/);
   assert.equal(core.validateEvent({ ...future, status: 'planned' }, NOW).status, 'planned');
-  for (const status of core.STATES.filter(s => s !== 'planned')) {
+  assert.equal(core.validateEvent({ ...future, status: 'cancelled' }, NOW).status, 'cancelled');
+  for (const status of core.STATES.filter(s => !['planned','cancelled'].includes(s))) {
     assert.throws(() => core.validateEvent({ ...future, status }, NOW), /future events must be planned/);
   }
+});
+
+test('preserves unclassified history as unknown and accepts confirmed in-progress history', () => {
+  const past = { ...base, occurredAt: '2026-10-28T12:00:00Z' };
+  const confirmed = { historicalConfirmation: true, confirmedAt: '2026-10-29T11:59:00Z' };
+  assert.equal(core.validateEvent({ ...past, status: 'unknown', ...confirmed }, NOW).status, 'unknown');
+  assert.equal(core.validateEvent({ ...past, status: 'in_progress', ...confirmed }, NOW).status, 'in_progress');
+  assert.throws(() => core.validateEvent({ ...past, status: 'unknown' }, NOW), /explicit user confirmation/);
 });
 
 test('requires explicit confirmation for past entries and labels them user-confirmed', () => {

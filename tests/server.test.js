@@ -5,7 +5,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { openDatabase } = require('../db');
+const { openDatabase, SCHEMA } = require('../db');
+const { DatabaseSync } = require('node:sqlite');
 const { makeServer } = require('../server');
 
 const TOKEN = 'test-token-that-is-at-least-thirty-two-characters';
@@ -34,7 +35,8 @@ test('API requires authentication and records confirmed corrections in database 
   const plannedAt = new Date(Date.now() + 3600000).toISOString();
   const plannedResponse = await fetch(`${base}/api/events`, { method: 'POST', headers, body: JSON.stringify({ category: 'plan', title: 'Trip', status: 'planned', occurredAt: plannedAt, timezone: 'Asia/Kolkata' }) });
   assert.equal(plannedResponse.status, 201);
-  assert.equal((await plannedResponse.json()).status, 'planned');
+  const plannedRecord = await plannedResponse.json();
+  assert.equal(plannedRecord.status, 'planned');
 
   const capturedAt = new Date().toISOString();
   const currentResponse = await fetch(`${base}/api/events`, { method: 'POST', headers, body: JSON.stringify({ category: 'meal', title: 'Current meal', status: 'completed', occurredAt: capturedAt, currentCapture: true, timezone: 'Asia/Kolkata' }) });
@@ -50,6 +52,8 @@ test('API requires authentication and records confirmed corrections in database 
   const latest = db.prepare('SELECT before_json,after_json FROM audit_events WHERE action = ? ORDER BY id DESC').get('corrected');
   assert.equal(JSON.parse(latest.before_json).title, 'Gym');
   assert.equal(JSON.parse(latest.after_json).title, 'Gym corrected');
+  const cancelFuture = await fetch(`${base}/api/events/${plannedRecord.id}`, { method: 'PATCH', headers, body: JSON.stringify({ status: 'cancelled' }) });
+  assert.equal(cancelFuture.status, 200);
   assert.throws(() => db.prepare('UPDATE audit_events SET action = ? WHERE id = 1').run('deleted'), /audit events are immutable/);
 });
 
@@ -64,5 +68,29 @@ test('SQLite triggers reject invalid future completed events even when API valid
     VALUES('past','owner','workout','Past','completed',?,?, 'UTC',?,?, 'owner')`).run(past.toISOString(), past.getTime(), new Date().toISOString(), new Date().toISOString()), /historical events require user confirmation/);
   assert.throws(() => db.prepare(`INSERT INTO events(id,user_id,category,title,status,occurred_at,occurred_at_ms,timezone,created_at,updated_at,updated_by)
     VALUES('bad','owner','meal','Bad','completed','not-a-time',0,'UTC',?,?, 'owner')`).run(new Date().toISOString(), new Date().toISOString()));
+  const cancelledAt = new Date(Date.now() + 60000);
+  assert.doesNotThrow(() => db.prepare(`INSERT INTO events(id,user_id,category,title,status,occurred_at,occurred_at_ms,timezone,created_at,updated_at,updated_by)
+    VALUES('cancelled-future','owner','plan','Cancelled trip','cancelled',?,?, 'UTC',?,?, 'owner')`).run(cancelledAt.toISOString(), cancelledAt.getTime(), new Date().toISOString(), new Date().toISOString()));
   db.close();
+});
+
+test('migrates legacy event state constraints without losing records or audit history', t => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lifetrack-migrate-'));
+  const file = path.join(dir, 'legacy.sqlite');
+  const legacySchema = SCHEMA.replace("'pending','in_progress','unknown'", "'pending'");
+  const old = new DatabaseSync(file);
+  old.exec(legacySchema);
+  const now = new Date();
+  const stamp = now.toISOString();
+  old.prepare(`INSERT INTO events(id,user_id,category,title,status,occurred_at,occurred_at_ms,timezone,historical_confirmed_at,created_at,updated_at,updated_by)
+    VALUES('kept','owner','note','Keep me','completed',?,?, 'UTC',?,?,?,'owner')`).run(stamp, now.getTime(), stamp, stamp, stamp);
+  old.close();
+  const db = openDatabase(file);
+  t.after(() => { db.close(); fs.rmSync(dir, { recursive: true, force: true }); });
+  assert.equal(db.prepare("SELECT title FROM events WHERE id='kept'").get().title, 'Keep me');
+  assert.equal(db.prepare("SELECT COUNT(*) AS count FROM audit_events WHERE event_id='kept'").get().count, 1);
+  const past = new Date(Date.now() - 1000);
+  const confirm = new Date().toISOString();
+  assert.doesNotThrow(() => db.prepare(`INSERT INTO events(id,user_id,category,title,status,occurred_at,occurred_at_ms,timezone,historical_confirmed_at,created_at,updated_at,updated_by)
+    VALUES('unknown','owner','note','Unknown','unknown',?,?, 'UTC',?,?,?,'owner')`).run(past.toISOString(), past.getTime(), confirm, confirm, confirm));
 });
