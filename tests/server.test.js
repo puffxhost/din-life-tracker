@@ -82,8 +82,9 @@ test('migrates legacy event state constraints without losing records or audit hi
   old.exec(legacySchema);
   const now = new Date();
   const stamp = now.toISOString();
+  const occurred = new Date(now.getTime() - 5000);
   old.prepare(`INSERT INTO events(id,user_id,category,title,status,occurred_at,occurred_at_ms,timezone,historical_confirmed_at,created_at,updated_at,updated_by)
-    VALUES('kept','owner','note','Keep me','completed',?,?, 'UTC',?,?,?,'owner')`).run(stamp, now.getTime(), stamp, stamp, stamp);
+    VALUES('kept','owner','note','Keep me','completed',?,?, 'UTC',?,?,?,'owner')`).run(occurred.toISOString(), occurred.getTime(), stamp, stamp, stamp);
   old.close();
   const db = openDatabase(file);
   t.after(() => { db.close(); fs.rmSync(dir, { recursive: true, force: true }); });
