@@ -26,9 +26,9 @@ function makeServer({ db, token, userId = 'owner', staticRoot = __dirname, clock
     res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' });
     res.end(JSON.stringify(data));
   }
-  async function body(req) {
-    let raw = '';
-    for await (const chunk of req) { raw += chunk; if (raw.length > 64 * 1024) throw Object.assign(new Error('request body too large'), { status: 413 }); }
+  async function body(req, maxLength = 64 * 1024) {
+    let raw = '', size = 0;
+    for await (const chunk of req) { const value = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk); size += value.length; if (size > maxLength) throw Object.assign(new Error('request body too large'), { status: 413 }); raw += value.toString('utf8'); }
     try { return JSON.parse(raw || '{}'); } catch { throw Object.assign(new Error('invalid JSON body'), { status: 400 }); }
   }
   const handler = async (req, res) => {
@@ -43,6 +43,48 @@ function makeServer({ db, token, userId = 'owner', staticRoot = __dirname, clock
         if (req.method === 'GET' && url.pathname === '/api/audit') {
           const rows = db.prepare('SELECT * FROM audit_events WHERE user_id = ? ORDER BY id DESC').all(userId);
           return send(res, 200, { audit: rows });
+        }
+        if (req.method === 'POST' && url.pathname === '/api/import') {
+          const input = await body(req, 2 * 1024 * 1024);
+          if (!input || !Array.isArray(input.entries) || input.entries.length > 1000) throw Object.assign(new Error('entries must be an array with at most 1000 records'), { status: 400 });
+          const ids = new Set();
+          const prepared = input.entries.map((entry, index) => {
+            if (!entry || typeof entry.id !== 'string' || !entry.id.trim() || entry.id.length > 200) throw Object.assign(new Error(`entry ${index + 1} has an invalid ID`), { status: 400 });
+            if (ids.has(entry.id)) throw Object.assign(new Error(`entry ${index + 1} repeats an ID`), { status: 400 });
+            ids.add(entry.id);
+            if (entry.details != null && (typeof entry.details !== 'object' || Array.isArray(entry.details))) throw Object.assign(new Error(`entry ${index + 1} has invalid details`), { status: 400 });
+            const hasConfirmation = Boolean(entry.historicalConfirmedAt || entry.confirmedAt);
+            const event = core.validateEvent({
+              category: entry.category,
+              title: entry.title,
+              status: entry.status || 'unknown',
+              occurredAt: entry.occurredAt,
+              timezone: entry.timezone,
+              historicalConfirmation: hasConfirmation,
+              confirmedAt: entry.confirmedAt || entry.historicalConfirmedAt || undefined,
+              completedAt: entry.completedAt || undefined,
+              details: { ...(entry.details && typeof entry.details === 'object' && !Array.isArray(entry.details) ? entry.details : {}), ...(entry.notes ? { notes: entry.notes } : {}) },
+            }, clock());
+            return { id: entry.id, event };
+          });
+          const exists = db.prepare('SELECT 1 FROM events WHERE id = ? AND user_id = ?');
+          const insert = db.prepare(`INSERT INTO events(id,user_id,category,title,status,occurred_at,occurred_at_ms,timezone,historical_confirmed_at,completed_at,details_json,created_at,updated_at,updated_by)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+          const timestamp = nowIso();
+          let imported = 0, skipped = 0;
+          db.exec('BEGIN IMMEDIATE');
+          try {
+            for (const { id, event } of prepared) {
+              if (exists.get(id, userId)) { skipped++; continue; }
+              insert.run(id,userId,event.category,event.title,event.status,event.occurredAt,Date.parse(event.occurredAt),event.timezone,event.historicalConfirmedAt,event.completedAt || null,JSON.stringify(event.details || {}),timestamp,timestamp,userId);
+              imported++;
+            }
+            db.exec('COMMIT');
+          } catch (error) {
+            db.exec('ROLLBACK');
+            throw error;
+          }
+          return send(res, 200, { imported, skipped, total: prepared.length });
         }
         if (req.method === 'POST' && url.pathname === '/api/events') {
           const now = clock();

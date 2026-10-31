@@ -122,7 +122,7 @@ Domain tables should reference the owning user and, where useful, a shared timel
 1. **Planning baseline:** audit, plan, and truthful README are in place; confirm deployment and account model.
 2. **Engineering foundation:** Node package scripts, environment example, ignore rules, and built-in core/API tests now exist. Add CI checks and a documented backup/restore strategy next.
 3. **Identity and persistence:** single-owner bearer auth, SQLite storage, event validation, audit triggers, API routes, and same-origin UI connection are implemented. Add schema migrations, multi-account authentication if required, and deployment hardening.
-4. **Core journal migration:** browser-only records are not bulk-imported to the server. Define a safe JSON import/migration flow with preview and historical confirmation before moving existing data.
+4. **Core journal migration:** the connected UI validates Dayora/Din backups, asks before import, and posts entries to `POST /api/import`. The endpoint validates the complete batch before a transaction, preserves IDs, skips IDs already owned by the configured user, and leaves existing server entries untouched. Batches are capped at 1,000 entries and 2 MB; browser mood records remain local. Future work: richer conflict preview, mood synchronization, and a formal schema migration format.
 5. **Habits and fitness:** recurring schedules, completion/missed records, structured workouts and missed sessions.
 6. **Wellbeing modules:** water, sleep, meal structure and configurable metrics.
 7. **Calendar and plans:** appointments, trips, date/time views, reminder preferences if safely supported.

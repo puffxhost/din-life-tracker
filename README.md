@@ -18,10 +18,10 @@ GitHub Pages is enabled for this repository with **GitHub Actions** as its publi
 - `core/event-system.js` provides shared strict timestamp, timezone, state, confirmation, and DST rules.
 - `server.js` provides bearer-token-protected `GET /api/events`, `POST /api/events`, `PATCH /api/events/:id`, and `GET /api/audit` endpoints.
 - `db.js` creates SQLite tables and triggers that reject future states other than planned or cancelled and unconfirmed historical events, and append immutable audit records for creates and corrections. On startup it migrates older event-state constraints while preserving existing records and audit history.
-- Connect from the UI with the server token. The token stays in `sessionStorage` for the current tab. Connected event changes go through API validation; server-loaded events are also cached locally by the existing UI.
+- Connect from the UI with the server token. The token stays in `sessionStorage` for the current tab. Connected event changes go through API validation; server-loaded events are also cached locally by the existing UI. Importing a validated Dayora or Din backup while connected can migrate its entries to the server without deleting existing server records.
 - Runtime dependencies are built into Node.js. Node 22.5 or newer is required for `node:sqlite`.
 
-**Important boundary:** The API is a single-owner bearer-token service, not full account management. Existing browser-only entries are not bulk-migrated automatically to the server. The token is tab-scoped, but event data and cached records remain in browser `localStorage`. There are no multi-user accounts, recurring schedules, reminders, water/sleep/metric modules, calendar, or period-based analytics beyond the existing basic charts.
+**Important boundary:** The API is a single-owner bearer-token service, not full account management. Browser entries move to the server only when you explicitly import a validated backup while connected. The token is tab-scoped, but event data and cached records remain in browser `localStorage`. There are no multi-user accounts, recurring schedules, reminders, water/sleep/metric modules, calendar, or period-based analytics beyond the existing basic charts.
 
 ## Run locally
 
@@ -42,6 +42,12 @@ curl -H "Authorization: Bearer $LIFETRACK_API_TOKEN" http://localhost:3000/api/e
 ```
 
 The API accepts timestamps as strict RFC 3339 strings with `Z` or an explicit numeric offset. Supply a valid IANA timezone and an explicit status. Future events must be `planned`; past events need `historicalConfirmation: true` and a `confirmedAt` timestamp. A past event is labelled `user-confirmed`, not verified.
+
+### Import a browser backup to the connected server
+
+In the app, connect to your self-hosted server, click the profile icon, and select a Dayora or Din JSON backup. The file is validated before the confirmation prompt. The import adds entries to the server, skips IDs already owned there, and never replaces or deletes existing server entries. The import is all-or-nothing if an entry is invalid. Each batch can contain up to 1,000 entries and 2 MB of JSON. Mood records remain local to this browser.
+
+The authenticated API endpoint is `POST /api/import` with an `{ "entries": [...] }` body. Each entry uses the same fields as `POST /api/events`, plus a stable string `id`; a historical entry must carry its existing `historicalConfirmedAt` or `confirmedAt` value. The endpoint validates the whole batch before writing and records each inserted entry in the audit log.
 
 ## Tests
 
